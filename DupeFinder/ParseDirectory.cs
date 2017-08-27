@@ -34,8 +34,6 @@ namespace FileDupeFinder
                 Console.WriteLine("path is missing or not exist");
                 return;
             }
-           //  if (IgnoreFolders.Any(x=> directory.ToLower().Contains(x.ToLower()))) return;
-          // if(string.Equals(directory, @"d:\other",StringComparison.CurrentCultureIgnoreCase)) return;
             Console.WriteLine($"parsing {directory}");
             var fileInfos = new List<MyFileInfo>();
             try

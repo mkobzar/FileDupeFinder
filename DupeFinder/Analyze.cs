@@ -1,17 +1,26 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
 
 namespace FileDupeFinder
 {
-    class Analyze
+public  class Analyze
     {
+        public Analyze(string csvFile)
+        {
+            if (!File.Exists(csvFile))
+            {
+                Console.Write($"{csvFile} is not exist");
+                return;
+            }
+            var csv = ReadCsvToMyFileInfo(csvFile);
+            FindDupesWithDiffNames(csv);
+        }
 
-
-
-        static List<MyFileInfo> ReadCsvToMyFileInfo(string csvFileName)
+        List<MyFileInfo> ReadCsvToMyFileInfo(string csvFileName)
         {
             var myFileInfos = new List<MyFileInfo>();
             var sr = new StreamReader(csvFileName, Encoding.UTF8);
@@ -35,20 +44,18 @@ namespace FileDupeFinder
             return myFileInfos;
         }
 
-
-
-
-
-
-
-
-
-        static void FindDupesWithDiffNames(List<MyFileInfo> myFileInfos)
+         void FindDupesWithDiffNames(List<MyFileInfo> myFileInfos)
         {
+            /*
+             1.) "*_files" folders: exclude them and their content from csv, because they are as hole - are html sources 
+             2.)
+                
+             */
             var extentions = myFileInfos.Select(x => x.Extension.ToLower()).Distinct().ToArray();
-            var badExtentions = "bup,css,ctg,db,download,exe,html,ifo,ini,js,ps1,tmp".Split(',');
-            var folderBadPatterns = "".Split(',');
-            var fileBadPatterns = "".Split(',');
+            Console.WriteLine($"all extentions are:\n{string.Join(", ", extentions)}");
+                var badExtentions = "bup,css,ctg,db,download,exe,html,ifo,ini,js,ps1,tmp".Split(',');
+            //var folderBadPatterns = "".Split(',');
+            //var fileBadPatterns = "".Split(',');
             var myFileInfosWithoutBadExtentions =
                 myFileInfos.Where(x => !badExtentions.Contains(x.Extension.ToLower())).ToList();
             var distinctMd5S = myFileInfosWithoutBadExtentions.Select(x => x.Md5).Distinct().ToArray();
