@@ -24,6 +24,10 @@ namespace FileDupeFinder
                     // parse
                     new DirectoryParser(args[1]).Parse();
                     break;
+                case "/m":
+                    // merge
+                    new Merge(args[1]).Run();
+                    break;
                 default:
                     PrintUsage();
                     break;

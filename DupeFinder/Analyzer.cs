@@ -100,7 +100,7 @@ namespace FileDupeFinder
                 .Select(myInfo => myInfo.OrderBy(x => x.Folder).Last()).ToList();
 
             WriteFile($"{fileNameRoot}_recoveredLess.txt",
-                recoveredLessFileInfos.Select(lastItem => $"{lastItem.Folder}\\{lastItem.Name}").ToList());
+                recoveredLessFileInfos.Select(lastItem => $"{lastItem.Folder}\t{lastItem.Name}").ToList());
 
             var singleFileInOneGroup = grouped.Where(x => x.Count() == 1).ToList();
             Console.WriteLine($"singleFileInOneGroup = {singleFileInOneGroup.Count}");
