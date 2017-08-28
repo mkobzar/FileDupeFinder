@@ -9,23 +9,35 @@ using System.Text;
 
 namespace FileDupeFinder
 {
-    internal class ParseDirectory
+    internal class DirectoryParser
     {
-        public ParseDirectory(string directory)
+        private readonly string _rootDirectory;
+        private string _directoryContentReportFileName;
+
+        public DirectoryParser(string directory)
         {
-            if (string.IsNullOrEmpty(directory) || !Directory.Exists(directory))
+            _rootDirectory = directory;
+        }
+
+        public void Parse()
+        {
+            if (string.IsNullOrEmpty(_rootDirectory) || !Directory.Exists(_rootDirectory))
             {
                 Console.WriteLine("path is missing or not exist");
                 return;
             }
-            Console.WriteLine($"output file is {_directoryContentInfo}");
-            WriteFile(_directoryContentInfo, new List<string> {"path\tfile\textension\tdateTaken\tsize\tmd5"});
-            ParseDir(directory);
+            var directoryStripped = _rootDirectory.Replace("\\", "_").Replace(":", "").Replace(" ", "");
+            _directoryContentReportFileName =
+                Environment.GetEnvironmentVariable("USERPROFILE") +
+                $@"\Documents\{directoryStripped}_files{DateTime.Now:yyyy-dd-M--HH-mm}.csv";
+
+            Console.WriteLine($"output file is {_directoryContentReportFileName}");
+            WriteFile(_directoryContentReportFileName,
+                new List<string> {"path\tfile\textension\tdateTaken\tsize\tmd5"});
+            ParseDir(_rootDirectory);
             Console.WriteLine("done parsing");
         }
 
-        private readonly string _directoryContentInfo = Environment.GetEnvironmentVariable("USERPROFILE") +
-                                                        $@"\Documents\allFiles{DateTime.Now:yyyy-dd-M--HH-mm}.csv";
 
         private void ParseDir(string directory)
         {
@@ -44,7 +56,9 @@ namespace FileDupeFinder
                     try
                     {
                         var fileInfo = new FileInfo(f);
-                        fileInfos.Add(GetMyFileInfo(fileInfo));
+                        var myFileInfo = GetMyFileInfo(fileInfo);
+                        if (myFileInfo != null)
+                            fileInfos.Add(myFileInfo);
                     }
                     catch (Exception e)
                     {
@@ -55,7 +69,7 @@ namespace FileDupeFinder
                 if (fileInfos.Count > 0)
                 {
                     var thisBatch = fileInfos.Select(MyFileInfoToScvLine).ToList();
-                    WriteFile(_directoryContentInfo, thisBatch);
+                    WriteFile(_directoryContentReportFileName, thisBatch);
                 }
             }
             catch (Exception e)
@@ -88,6 +102,12 @@ namespace FileDupeFinder
 
         MyFileInfo GetMyFileInfo(FileInfo fileInfo)
         {
+            if (fileInfo.Directory == null)
+            {
+                Console.WriteLine($"this should neve happen, but {fileInfo.FullName} fileInfo.Directory was null, ");
+                return null;
+            }
+
             var myFileInfo = new MyFileInfo
             {
                 Name = fileInfo.Name,

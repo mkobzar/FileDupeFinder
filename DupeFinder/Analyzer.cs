@@ -6,17 +6,23 @@ using System.Text;
 
 namespace FileDupeFinder
 {
-    public class Analyze
+    public class Analyzer
     {
-        public Analyze(string csvFile)
+        private readonly string _csvFile;
+        public Analyzer(string csvFile)
         {
-            if (!File.Exists(csvFile))
+            _csvFile = csvFile;
+        }
+
+        public void Analyze()
+        {
+            if (!File.Exists(_csvFile))
             {
-                Console.Write($"{csvFile} is not exist");
+                Console.Write($"{_csvFile} is not exist");
                 return;
             }
-            var csv = ReadCsvToMyFileInfo(csvFile);
-            FindDupesWithDiffNames(csv, csvFile);
+            var csv = ReadCsvToMyFileInfo(_csvFile);
+            FindDupesWithDiffNames(csv, _csvFile);
         }
 
         List<MyFileInfo> ReadCsvToMyFileInfo(string csvFileName)

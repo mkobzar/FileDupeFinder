@@ -11,11 +11,12 @@ namespace FileDupeFinder
                 Console.WriteLine("path is missing or not exist");
                 return;
             }
+            
             // parse
-            //  var p = new ParseDirectory(args[0]);
-
+             new DirectoryParser(args[0]).Parse();
+            
             // avalize
-            var a = new Analyze(args[0]);
+            // var a = new Analyze(args[0]);
         }
     }
 }
