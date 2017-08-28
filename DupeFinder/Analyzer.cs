@@ -9,6 +9,7 @@ namespace FileDupeFinder
     public class Analyzer
     {
         private readonly string _csvFile;
+
         public Analyzer(string csvFile)
         {
             _csvFile = csvFile;
@@ -74,7 +75,7 @@ namespace FileDupeFinder
             WriteFile($"{fileNameRoot}_deleteCandidatesExtentions.txt", deleteCandidates);
             Console.WriteLine($"initial file count = {myFileInfos.Count}");
 
-            var ignoreFoldersEndsWith = "_files".Split(','); // there are 65 files
+            var ignoreFoldersEndsWith = "_files".Split(',');
             myFileInfos = myFileInfos.Where(x =>
                 !badExtentionsForDelete.Contains(x.Extension.ToLower())
                 && !ignoreFoldersEndsWith.Any(y => x.Folder.ToLower().EndsWith(y))
@@ -84,6 +85,23 @@ namespace FileDupeFinder
             Console.WriteLine($"file count after unwanted extensions and folders removal = {myFileInfos.Count}");
 
             var grouped = myFileInfos.GroupBy(x => x.Md5).OrderByDescending(x => x.Count()).ToList();
+
+            // I have files which where recovered and they are in *Recovered* folders. 
+            // In case when I would have *Recovered* location and original - I would prefer original folder 
+            var recoveredLessFileInfos = grouped
+                .Select(group => new
+                {
+                    group,
+                    recovered = group.Where(x => x.Folder.ToLower().Contains("recovered")).ToList()
+                })
+                .Select(t => t.recovered.Count < t.group.Count()
+                    ? t.group.Except(t.recovered).ToList()
+                    : t.group.ToList())
+                .Select(myInfo => myInfo.OrderBy(x => x.Folder).Last()).ToList();
+
+            WriteFile($"{fileNameRoot}_recoveredLess.txt",
+                recoveredLessFileInfos.Select(lastItem => $"{lastItem.Folder}\\{lastItem.Name}").ToList());
+
             var singleFileInOneGroup = grouped.Where(x => x.Count() == 1).ToList();
             Console.WriteLine($"singleFileInOneGroup = {singleFileInOneGroup.Count}");
             var moreThenOneSizeInOneGroup = grouped.Where(x => x.Select(y => y.Size).Distinct().Count() > 1)
@@ -97,12 +115,33 @@ namespace FileDupeFinder
             }
 
             var groupedSortedByFolderName = grouped.Select(y => y.OrderBy(z => z.Folder)).ToList();
-            var distinctFiles = groupedSortedByFolderName.Select(x => x.Last()).Select(x => $"{x.Folder}\\{x.Name}")
-                .ToList();
+            var distinctObjects = groupedSortedByFolderName.Select(x => x.Last()).ToList();
+            var distinctFilesNames = distinctObjects.Select(x => $"{x.Folder}\\{x.Name}").ToList();
+            var spaceNeeded = distinctObjects.Select(x => x.Size).Sum() / 1024 / 1024 / 1024;
             var distinctFilesFileName = $"{fileNameRoot}_distinctFiles.txt";
-            WriteFile(distinctFilesFileName, distinctFiles);
+            WriteFile(distinctFilesFileName, distinctFilesNames);
             Console.WriteLine(
-                $"{distinctFiles.Count} distinct files found and they are saved as {distinctFilesFileName}");
+                $"{distinctFilesNames.Count} distinct files found with total size = {spaceNeeded}GB, and file list saved as {distinctFilesFileName}");
+            var distinctrecoveredLessFolders = recoveredLessFileInfos.Select(x => StripParentFolder(x.Folder)).Distinct().ToList();
+            WriteFile($"{fileNameRoot}_distinctrecoveredLessFolders.txt", distinctrecoveredLessFolders);
+            var distinctFolders = distinctObjects.Select(x => StripParentFolder(x.Folder)).Distinct().ToList();
+            WriteFile($"{fileNameRoot}_distinctFolders.txt", distinctFolders);
+
+            // save list of very large files 
+            var largeObjects = distinctObjects.Where(x => x.Size > 100000000).OrderByDescending(x => x.Size).ToList();
+            var largeFiles = largeObjects.Select(x => $"{x.Folder}\\{x.Name}\t{x.Size}").ToList();
+            var largeFilesFileName = $"{fileNameRoot}_largeFiles.txt";
+            Console.WriteLine(
+                $"found {largeFiles.Count} files where size > 100MB" +
+                $"\ntotal size of those files is {largeObjects.Select(x => x.Size).Sum() / 1024 / 1024}MB" +
+                $"\nand this list was saved as {largeFilesFileName}");
+            WriteFile(largeFilesFileName, largeFiles);
+        }
+
+        private string StripParentFolder(string path)
+        {
+            var index = path.IndexOf("\\", 4, StringComparison.Ordinal);
+            return index == -1 ? "." : path.Substring(index).ToLower();
         }
 
         private void WriteFile(string fileName, List<string> content)

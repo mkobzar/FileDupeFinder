@@ -102,11 +102,11 @@ namespace FileDupeFinder
 
         MyFileInfo GetMyFileInfo(FileInfo fileInfo)
         {
-            if (fileInfo.Directory == null)
-            {
-                Console.WriteLine($"this should neve happen, but {fileInfo.FullName} fileInfo.Directory was null, ");
-                return null;
-            }
+            //if (fileInfo.Directory == null)
+            //{
+            //    Console.WriteLine($"this should neve happen, but {fileInfo.FullName} fileInfo.Directory was null, ");
+            //    return null;
+            //}
 
             var myFileInfo = new MyFileInfo
             {
