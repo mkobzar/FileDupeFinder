@@ -17,7 +17,7 @@ public  class Analyze
                 return;
             }
             var csv = ReadCsvToMyFileInfo(csvFile);
-            FindDupesWithDiffNames(csv);
+            FindDupesWithDiffNames(csv, csvFile);
         }
 
         List<MyFileInfo> ReadCsvToMyFileInfo(string csvFileName)
@@ -44,27 +44,62 @@ public  class Analyze
             return myFileInfos;
         }
 
-         void FindDupesWithDiffNames(List<MyFileInfo> myFileInfos)
-        {
+         void FindDupesWithDiffNames(List<MyFileInfo> myFileInfos, string csvFile)
+         {
             /*
+             * FOLDER UNITS:
              1.) "*_files" folders: exclude them and their content from csv, because they are as hole - are html sources 
-             2.)
-                
+               
+             ignore *_files folders 
+
+            any files with same md5 and not same size?
+
              */
-            var extentions = myFileInfos.Select(x => x.Extension.ToLower()).Distinct().ToArray();
-            Console.WriteLine($"all extentions are:\n{string.Join(", ", extentions)}");
-                var badExtentions = "bup,css,ctg,db,download,exe,html,ifo,ini,js,ps1,tmp".Split(',');
+            //var extensions = myFileInfos.Select(x => x.Extension.ToLower()).Distinct().ToArray();
+            //Console.WriteLine($"all extensions are:\n{string.Join(", ", extensions)}");
+
+            // csv filename without extension:
+            var fileNameRoot = csvFile.Substring(0, csvFile.Length - 4);
+
+            // delete Candidates based on unwanted Extensions
+            var badExtentionsForDelete = "ctg,db,ini,tmp,bup,ifo".Split(',');
+             var deleteCandidates = myFileInfos.Where(x =>
+                     badExtentionsForDelete.Contains(x.Extension.ToLower()) ||
+                     x.Name.StartsWith(".") &&
+                     string.Equals(x.Extension.ToLower(), "jpg",
+                         StringComparison.CurrentCultureIgnoreCase))
+                 .Select(x => $"{x.Folder}\\{x.Name}").ToList();
+             WriteFile($"{fileNameRoot}_deleteCandidatesExtentions.txt", deleteCandidates);
+            Console.WriteLine($"initial file count = {myFileInfos.Count}");
+
+            var ignoreFoldersEndsWith = "_files".Split(','); // there are 65 files
+             myFileInfos = myFileInfos.Where(x =>
+                 !badExtentionsForDelete.Contains(x.Extension.ToLower())
+                 && !ignoreFoldersEndsWith.Any(y => x.Folder.ToLower().EndsWith(y))
+                 && !(x.Name.StartsWith(".") &&
+                      string.Equals(x.Extension.ToLower(), "jpg",
+                          StringComparison.CurrentCultureIgnoreCase))).ToList();
+                // && !ignoreFoldersEndsWith.Contains(x.Folder.ToLower())).ToList();
+            Console.WriteLine($"file count after unwanted extensions and folders removal = {myFileInfos.Count}");
+
+             var grouped = myFileInfos.GroupBy(x => x.Md5).OrderByDescending(x => x.Count()).ToList();
+            var moreThenOneSizeInOneGroup = grouped.Where(x=>x.Select(y=>y.Size).Distinct().Count()>1);
+             var assert = moreThenOneSizeInOneGroup.Any();
+            //any files with same md5 and not same size?
+
+            // var folderUnitsContainExtentions = "bup".Split(',');
+
             //var folderBadPatterns = "".Split(',');
             //var fileBadPatterns = "".Split(',');
-            var myFileInfosWithoutBadExtentions =
-                myFileInfos.Where(x => !badExtentions.Contains(x.Extension.ToLower())).ToList();
-            var distinctMd5S = myFileInfosWithoutBadExtentions.Select(x => x.Md5).Distinct().ToArray();
+            //var myFileInfosWithoutBadExtentions = myFileInfos.Where(x => !badExtentionsForDelete.Contains(x.Extension.ToLower())).ToList();
+            //var distinctMd5S = myFileInfosWithoutBadExtentions.Select(x => x.Md5).Distinct().ToArray();
             // var distinct =myFileInfosWithoutBadExtentions.SelectMany(x => distinctMd5S.Where(y => string.Equals(y, x.Md5)).Take(1)).ToList();
             // var distinct2 = distinctMd5S.Select(x => myFileInfosWithoutBadExtentions.First(y => y.Md5 == x)).ToArray();
             //  var d3=    myFileInfosWithoutBadExtentions.SelectMany(x => distinctMd5S.Where(y => string.Equals(y, x.Md5)).Take(1));
-            var grouped = myFileInfosWithoutBadExtentions.GroupBy(x => x.Md5).OrderByDescending(x => x.Count())
-                .ToList();
+            //var grouped = myFileInfosWithoutBadExtentions.GroupBy(x => x.Md5).OrderByDescending(x => x.Count()).ToList();
             var dups = grouped.Where(x => x.Count() > 1).ToList();
+
+            return;
 
             //var toDelete = new List<MyFileInfo>();
             //var toDeleteWithDiffnames = new List<MyFileInfo>();
