@@ -1,20 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace FileDupeFinder
 {
     public class Merge
     {
         private readonly string _fileList, _tagetFolder;
+        private readonly List<string> _errors = new List<string>();
 
         public Merge(string fileList, string tagetFolder)
         {
             _fileList = fileList;
-            _tagetFolder = tagetFolder;
+            _tagetFolder = tagetFolder.TrimEnd('\\');
         }
 
         public void Run()
@@ -24,15 +23,54 @@ namespace FileDupeFinder
                 Console.Write($"{_fileList} is not exist");
                 return;
             }
+            try
+            {
+                Directory.CreateDirectory(_tagetFolder);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"failed to create directory {_tagetFolder}, error:\n{e.Message}");
+                return;
+            }
+
             var sourceFiles = ReadMyListFile();
-
-
+            sourceFiles.ForEach(FileMove);
+            if (_errors.Count <= 0) return;
+            var fileName = $"{_fileList.Substring(0, _fileList.Length - 4)}_errors.txt";
+            using (var wr = new StreamWriter(fileName, false, Encoding.UTF8))
+            {
+                _errors.ForEach(x => wr.WriteLine(x));
+                wr.Close();
+            }
         }
 
-        private string GetTargetFolder(string path)
+        private void FileMove(MyFileInfo mi)
         {
-            var index = path.IndexOf("\\", 4, StringComparison.Ordinal);
-            return index == -1 ? "." : path.Substring(index).ToLower();
+            try
+            {
+                var file = $"{mi.Folder}\\{mi.Name}";
+                if (!File.Exists(file))
+                {
+                    Console.WriteLine($"{file} does not exist");
+                    return;
+                }
+                Console.Write($"\rmoving {file} ...");
+                if (!Directory.Exists(mi.TargetFolder))
+                    Directory.CreateDirectory(mi.TargetFolder);
+                var targetFile = $"{mi.TargetFolder}\\{mi.Name}";
+                if (File.Exists(targetFile))
+                {
+                    targetFile =
+                        $"{Path.GetDirectoryName(targetFile)}\\{Path.GetFileNameWithoutExtension(targetFile)}_{DateTime.Now.Ticks}{Path.GetExtension(targetFile)}";
+                }
+                File.Move(file, targetFile);
+            }
+            catch (Exception e)
+            {
+                var msg = $"failed to move {mi.Name} from {mi.Folder} to {mi.TargetFolder}\n{e.Message}";
+                _errors.Add(msg);
+                Console.WriteLine(msg);
+            }
         }
 
         private List<MyFileInfo> ReadMyListFile()
@@ -47,10 +85,19 @@ namespace FileDupeFinder
                 myFileInfos.Add(new MyFileInfo
                 {
                     Folder = cells[0],
-                    Name = cells[1]
+                    Name = cells[1],
+                    TargetFolder = GetTargetFolder(cells[0])
                 });
             }
             return myFileInfos;
+        }
+
+        private string GetTargetFolder(string sourceFolder)
+        {
+            var index = sourceFolder.IndexOf("\\", 4, StringComparison.Ordinal);
+            var strippedSourceFolderr =
+                _tagetFolder + (index == -1 ? "" : sourceFolder.Substring(index).ToLower());
+            return strippedSourceFolderr;
         }
     }
 }

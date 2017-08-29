@@ -86,21 +86,35 @@ namespace FileDupeFinder
 
             var grouped = myFileInfos.GroupBy(x => x.Md5).OrderByDescending(x => x.Count()).ToList();
 
-            // I have files which where recovered and they are in *Recovered* folders. 
-            // In case when I would have *Recovered* location and original - I would prefer original folder 
-            var recoveredLessFileInfos = grouped
-                .Select(group => new
-                {
-                    group,
-                    recovered = group.Where(x => x.Folder.ToLower().Contains("recovered")).ToList()
-                })
-                .Select(t => t.recovered.Count < t.group.Count()
-                    ? t.group.Except(t.recovered).ToList()
-                    : t.group.ToList())
-                .Select(myInfo => myInfo.OrderBy(x => x.Folder).Last()).ToList();
+            //var recoveredLessFileInfos = grouped
+            //    .Select(group => new
+            //    {
+            //        group,
+            //        monitoredGroup = group.Where(x => x.Folder.ToLower().Contains("recovered") ||
+            //        x.Name.StartsWith("f") && string.Equals(x.Extension, "jpg",
+            //            StringComparison.CurrentCultureIgnoreCase)).ToList()
+            //    })
+            //    .Select(t => t.monitoredGroup.Count < t.group.Count()
+            //        ? t.group.Except(t.monitoredGroup).ToList()
+            //        : t.group.ToList())
+            //  .Select(myInfo => myInfo.OrderBy(x => x.Folder).Last()).ToList();
 
-            WriteFile($"{fileNameRoot}_recoveredLess.txt",
-                recoveredLessFileInfos.Select(lastItem => $"{lastItem.Folder}\t{lastItem.Name}").ToList());
+            var mi = grouped
+                .Select(gr => new {gr, gr0 = gr.Where(x => !x.Folder.ToLower().Contains("recovered")).ToList()})
+                .Select(t => t.gr0.Any() ? t.gr0 : t.gr.ToList())
+                .Select(gr1 => new
+                {
+                    gr1,
+                    gr2 = gr1.Where(x =>
+                            !(x.Name.StartsWith("f") &&
+                              string.Equals(x.Extension, "jpg", StringComparison.CurrentCultureIgnoreCase)))
+                        .ToList()
+                })
+                .Select(t => t.gr2.Any() ? t.gr2 : t.gr1)
+                .Select(gr3 => gr3.OrderBy(x => x.Folder).Last()).ToList();
+
+            WriteFile($"{fileNameRoot}_distinct9.txt",
+                mi.Select(lastItem => $"{lastItem.Folder}\t{lastItem.Name}").ToList());
 
             var singleFileInOneGroup = grouped.Where(x => x.Count() == 1).ToList();
             Console.WriteLine($"singleFileInOneGroup = {singleFileInOneGroup.Count}");
@@ -122,8 +136,8 @@ namespace FileDupeFinder
             WriteFile(distinctFilesFileName, distinctFilesNames);
             Console.WriteLine(
                 $"{distinctFilesNames.Count} distinct files found with total size = {spaceNeeded}GB, and file list saved as {distinctFilesFileName}");
-            var distinctrecoveredLessFolders = recoveredLessFileInfos.Select(x => StripParentFolder(x.Folder)).Distinct().ToList();
-            WriteFile($"{fileNameRoot}_distinctrecoveredLessFolders.txt", distinctrecoveredLessFolders);
+           // var distinctrecoveredLessFolders = recoveredLessFileInfos.Select(x => StripParentFolder(x.Folder)).Distinct().ToList();
+           // WriteFile($"{fileNameRoot}_distinctrecoveredLessFolders.txt", distinctrecoveredLessFolders);
             var distinctFolders = distinctObjects.Select(x => StripParentFolder(x.Folder)).Distinct().ToList();
             WriteFile($"{fileNameRoot}_distinctFolders.txt", distinctFolders);
 
@@ -133,7 +147,7 @@ namespace FileDupeFinder
             var largeFilesFileName = $"{fileNameRoot}_largeFiles.txt";
             Console.WriteLine(
                 $"found {largeFiles.Count} files where size > 100MB" +
-                $"\ntotal size of those files is {largeObjects.Select(x => x.Size).Sum() / 1024 / 1024}MB" +
+                $"\ntotal size of those files is {largeObjects.Select(x => x.Size).Sum() / 1024 / 1024 / 1024}GB" +
                 $"\nand this list was saved as {largeFilesFileName}");
             WriteFile(largeFilesFileName, largeFiles);
         }

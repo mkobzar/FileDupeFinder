@@ -9,7 +9,7 @@ namespace FileDupeFinder
     {
         static void Main(string[] args)
         {
-            if (args.Length != 2)
+            if (args.Length < 2)
             {
                 PrintUsage();
                 return;
@@ -26,7 +26,12 @@ namespace FileDupeFinder
                     break;
                 case "/m":
                     // merge
-                    new Merge(args[1]).Run();
+                    if (args.Length < 3)
+                    {
+                        PrintUsage();
+                        return;
+                    }
+                    new Merge(args[1], args[2]).Run();
                     break;
                 default:
                     PrintUsage();

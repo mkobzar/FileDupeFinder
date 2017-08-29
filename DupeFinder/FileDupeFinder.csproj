@@ -64,6 +64,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Analyzer.cs" />
+    <Compile Include="Merge.cs" />
     <Compile Include="MyFileInfo.cs" />
     <Compile Include="DirectoryParser.cs" />
     <Compile Include="Program.cs" />

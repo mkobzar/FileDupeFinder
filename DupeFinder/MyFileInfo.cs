@@ -8,5 +8,6 @@
         public long Size { get; set; }
         public string DateTaken { get; set; }
         public string Md5 { get; set; }
+        public string TargetFolder { get; set; }
     }
 }
