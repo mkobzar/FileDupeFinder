@@ -7,8 +7,13 @@ namespace FileDupeFinder
 {
     class Program
     {
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="args"></param>
         static void Main(string[] args)
         {
+
             if (args.Length < 2)
             {
                 PrintUsage();
@@ -17,8 +22,12 @@ namespace FileDupeFinder
             switch (args[0])
             {
                 case "/a":
-                    // avalize
-                    new Analyzer(args[1]).Analyze();
+                    // analyze
+                    new Analyzer(args).Analyze();
+                    break;
+                case "/u":
+                    // analyze diff for update 
+                    new UpdateDiff(args).Run();
                     break;
                 case "/p":
                     // parse

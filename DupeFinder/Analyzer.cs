@@ -8,23 +8,34 @@ namespace FileDupeFinder
 {
     public class Analyzer
     {
-        private readonly string _csvFile;
+        private readonly string[] _csvFiles;
 
-        public Analyzer(string csvFile)
+        public Analyzer(string[] csvFiles)
         {
-            _csvFile = csvFile;
+            _csvFiles = csvFiles;
         }
 
         public void Analyze()
         {
-            if (!File.Exists(_csvFile))
+                var myFileInfos = new List<MyFileInfo>();
+            foreach (var csvFile in _csvFiles)
             {
-                Console.Write($"{_csvFile} is not exist");
+                if(string.Equals(csvFile, "/a", StringComparison.CurrentCultureIgnoreCase))
+                    continue;
+                if (!File.Exists(csvFile))
+                    Console.Write($"{csvFile} is not exist");
+                var csv = ReadCsvToMyFileInfo(csvFile);
+                if(csv!=null && csv.Count>0)
+                    myFileInfos.AddRange(csv);
+            }
+            if (myFileInfos.Count==0)
+            {
+                Console.Write($"no valid data found in those files\n{string.Join("\n", _csvFiles)}");
                 return;
             }
-            var csv = ReadCsvToMyFileInfo(_csvFile);
-            FindDupesWithDiffNames(csv, _csvFile);
+            FindDupesWithDiffNames(myFileInfos, _csvFiles[1]);
         }
+
 
         List<MyFileInfo> ReadCsvToMyFileInfo(string csvFileName)
         {
@@ -86,35 +97,23 @@ namespace FileDupeFinder
 
             var grouped = myFileInfos.GroupBy(x => x.Md5).OrderByDescending(x => x.Count()).ToList();
 
-            //var recoveredLessFileInfos = grouped
-            //    .Select(group => new
+            //// filter out f*.jpg files 
+            //var mi = grouped
+            //    .Select(gr => new {gr, gr0 = gr.Where(x => !x.Folder.ToLower().Contains("recovered")).ToList()})
+            //    .Select(t => t.gr0.Any() ? t.gr0 : t.gr.ToList())
+            //    .Select(gr1 => new
             //    {
-            //        group,
-            //        monitoredGroup = group.Where(x => x.Folder.ToLower().Contains("recovered") ||
-            //        x.Name.StartsWith("f") && string.Equals(x.Extension, "jpg",
-            //            StringComparison.CurrentCultureIgnoreCase)).ToList()
+            //        gr1,
+            //        gr2 = gr1.Where(x =>
+            //                !(x.Name.StartsWith("f") &&
+            //                  string.Equals(x.Extension, "jpg", StringComparison.CurrentCultureIgnoreCase)))
+            //            .ToList()
             //    })
-            //    .Select(t => t.monitoredGroup.Count < t.group.Count()
-            //        ? t.group.Except(t.monitoredGroup).ToList()
-            //        : t.group.ToList())
-            //  .Select(myInfo => myInfo.OrderBy(x => x.Folder).Last()).ToList();
+            //    .Select(t => t.gr2.Any() ? t.gr2 : t.gr1)
+            //    .Select(gr3 => gr3.OrderBy(x => x.Folder).Last()).ToList();
 
-            var mi = grouped
-                .Select(gr => new {gr, gr0 = gr.Where(x => !x.Folder.ToLower().Contains("recovered")).ToList()})
-                .Select(t => t.gr0.Any() ? t.gr0 : t.gr.ToList())
-                .Select(gr1 => new
-                {
-                    gr1,
-                    gr2 = gr1.Where(x =>
-                            !(x.Name.StartsWith("f") &&
-                              string.Equals(x.Extension, "jpg", StringComparison.CurrentCultureIgnoreCase)))
-                        .ToList()
-                })
-                .Select(t => t.gr2.Any() ? t.gr2 : t.gr1)
-                .Select(gr3 => gr3.OrderBy(x => x.Folder).Last()).ToList();
-
-            WriteFile($"{fileNameRoot}_distinct9.txt",
-                mi.Select(lastItem => $"{lastItem.Folder}\t{lastItem.Name}").ToList());
+            //WriteFile($"{fileNameRoot}_distinct9.txt",
+            //    mi.Select(lastItem => $"{lastItem.Folder}\t{lastItem.Name}").ToList());
 
             var singleFileInOneGroup = grouped.Where(x => x.Count() == 1).ToList();
             Console.WriteLine($"singleFileInOneGroup = {singleFileInOneGroup.Count}");
@@ -130,7 +129,8 @@ namespace FileDupeFinder
 
             var groupedSortedByFolderName = grouped.Select(y => y.OrderBy(z => z.Folder)).ToList();
             var distinctObjects = groupedSortedByFolderName.Select(x => x.Last()).ToList();
-            var distinctFilesNames = distinctObjects.Select(x => $"{x.Folder}\\{x.Name}").ToList();
+            //var distinctObjects = groupedSortedByFolderName.Select(x => x.First()).ToList();
+            var distinctFilesNames = distinctObjects.Select(x => $"{x.Folder}\t{x.Name}").ToList();
             var spaceNeeded = distinctObjects.Select(x => x.Size).Sum() / 1024 / 1024 / 1024;
             var distinctFilesFileName = $"{fileNameRoot}_distinctFiles.txt";
             WriteFile(distinctFilesFileName, distinctFilesNames);

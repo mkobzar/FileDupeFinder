@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace FileDupeFinder
@@ -25,7 +26,8 @@ namespace FileDupeFinder
             }
             try
             {
-                Directory.CreateDirectory(_tagetFolder);
+                if (!Directory.Exists(_tagetFolder))
+                    Directory.CreateDirectory(_tagetFolder);
             }
             catch (Exception e)
             {
@@ -34,6 +36,9 @@ namespace FileDupeFinder
             }
 
             var sourceFiles = ReadMyListFile();
+           // var fileExist = sourceFiles.Where(x => File.Exists($"{x.Folder}\\{x.Name}")).Select(x=>$"{x.Folder}\\{x.Name}").ToArray();
+            //var fileNotExist = sourceFiles.Where(x => !File.Exists($"{x.Folder}\\{x.Name}")).Select(x=>$"{x.Folder}\\{x.Name}").ToArray();
+
             sourceFiles.ForEach(FileMove);
             if (_errors.Count <= 0) return;
             var fileName = $"{_fileList.Substring(0, _fileList.Length - 4)}_errors.txt";
@@ -63,7 +68,8 @@ namespace FileDupeFinder
                     targetFile =
                         $"{Path.GetDirectoryName(targetFile)}\\{Path.GetFileNameWithoutExtension(targetFile)}_{DateTime.Now.Ticks}{Path.GetExtension(targetFile)}";
                 }
-                File.Move(file, targetFile);
+                File.Copy(file, targetFile);
+               // File.Move(file, targetFile);
             }
             catch (Exception e)
             {
