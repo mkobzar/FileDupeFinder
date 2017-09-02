@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
 
 namespace FileDupeFinder
@@ -10,11 +9,19 @@ namespace FileDupeFinder
     {
         private readonly string _fileList, _tagetFolder;
         private readonly List<string> _errors = new List<string>();
+        private readonly bool _move;
 
-        public Merge(string fileList, string tagetFolder)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="fileList"></param>
+        /// <param name="tagetFolder"></param>
+        /// <param name="move">set true to Move or false to copy</param>
+        public Merge(string fileList, string tagetFolder, bool move)
         {
             _fileList = fileList;
             _tagetFolder = tagetFolder.TrimEnd('\\');
+            _move = move;
         }
 
         public void Run()
@@ -36,7 +43,7 @@ namespace FileDupeFinder
             }
 
             var sourceFiles = ReadMyListFile();
-           // var fileExist = sourceFiles.Where(x => File.Exists($"{x.Folder}\\{x.Name}")).Select(x=>$"{x.Folder}\\{x.Name}").ToArray();
+            // var fileExist = sourceFiles.Where(x => File.Exists($"{x.Folder}\\{x.Name}")).Select(x=>$"{x.Folder}\\{x.Name}").ToArray();
             //var fileNotExist = sourceFiles.Where(x => !File.Exists($"{x.Folder}\\{x.Name}")).Select(x=>$"{x.Folder}\\{x.Name}").ToArray();
 
             sourceFiles.ForEach(FileMove);
@@ -68,8 +75,10 @@ namespace FileDupeFinder
                     targetFile =
                         $"{Path.GetDirectoryName(targetFile)}\\{Path.GetFileNameWithoutExtension(targetFile)}_{DateTime.Now.Ticks}{Path.GetExtension(targetFile)}";
                 }
-                File.Copy(file, targetFile);
-               // File.Move(file, targetFile);
+                if (_move)
+                    File.Move(file, targetFile);
+                else
+                    File.Copy(file, targetFile);
             }
             catch (Exception e)
             {

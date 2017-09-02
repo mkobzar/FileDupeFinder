@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
 
 namespace FileDupeFinder
 {
@@ -34,13 +31,22 @@ namespace FileDupeFinder
                     new DirectoryParser(args[1]).Parse();
                     break;
                 case "/m":
-                    // merge
+                    // move file
                     if (args.Length < 3)
                     {
                         PrintUsage();
                         return;
                     }
-                    new Merge(args[1], args[2]).Run();
+                    new Merge(args[1], args[2], true).Run();
+                    break;
+                case "/c":
+                    // move file
+                    if (args.Length < 3)
+                    {
+                        PrintUsage();
+                        return;
+                    }
+                    new Merge(args[1], args[2], false).Run();
                     break;
                 default:
                     PrintUsage();
